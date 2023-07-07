@@ -1,0 +1,88 @@
+version: "3"
+
+# networks:
+#   monitor:
+#     driver: bridge
+
+services:
+  # loki:
+  #   image: grafana/loki:latest
+  #   ports:
+  #     - "3100:3100"
+  #   restart: unless-stopped
+  #   command: -config.file=/etc/loki/loki-config.yml
+  #   volumes:
+  #     - ./loki/:/etc/loki/
+    
+  # promtail:
+  #   image: grafana/promtail:latest
+  #   restart: unless-stopped
+  #   command: -config.file=/etc/promtail/promtail-config.yml
+  #   volumes:
+  #     - /var/log:/var/log
+  #     - ./promtail/:/etc/promtail/
+  
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    user: "1000"
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    volumes:
+      - ./grafana/:/var/lib/grafana
+      - ./grafana/datasource.yml:/etc/grafana/provisioning/datasources/datasource.yml
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    command:
+      - --config.file=/etc/prometheus-config.yml
+      # - '--storage.tsdb.path=/prometheus'
+      # - --web.enable-remote-write-receiver
+      # - --enable-feature=exemplar-storage
+      # - '--web.console.libraries=/etc/prometheus/console_libraries'
+      # - '--web.console.templates=/etc/prometheus/consoles'
+      # - '--storage.tsdb.retention.time=200h'
+      # - '--web.enable-lifecycle'
+    ports:
+      - "9090:9090"
+    restart: unless-stopped
+    volumes:
+      - ./prometheus/prometheus-config.yml:/etc/prometheus-config.yml
+      # - ./prometheus-data/:/prometheus
+
+  # For system monitor
+  node_exporter:
+    image: quay.io/prometheus/node-exporter:latest
+    container_name: node_exporter
+    command:
+      - '--path.rootfs=/host'
+    network_mode: host
+    pid: host
+    restart: unless-stopped
+    # ports:
+    #   - "9090:9090"
+    expose:
+      - 9100
+    volumes:
+      - '/:/host:ro,rslave'
+
+  # For docker monitor
+  # cadvisor:
+  #   image: gcr.io/cadvisor/cadvisor:v0.47.0
+  #   container_name: cadvisor
+  #   ports:
+  #     - 8080:8080
+  #   network_mode: host
+  #   volumes:
+  #     - /:/rootfs:ro
+  #     - /var/run:/var/run:ro
+  #     - /sys:/sys:ro
+  #     - /var/lib/docker/:/var/lib/docker:ro
+  #     - /dev/disk/:/dev/disk:ro
+  #   devices:
+  #     - /dev/kmsg
+  #   privileged: true
+  #   restart: unless-stopped
