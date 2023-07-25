@@ -17,9 +17,9 @@ datasources:
     editable: true
     jsonData:
       httpMethod: POST
-      exemplarTraceIdDestinations:
-        - name: trace_id
-          datasourceUid: tempo
+      # exemplarTraceIdDestinations:
+      #   - name: trace_id
+      #     datasourceUid: tempo
   
   # - name: Loki
   #   type: loki
