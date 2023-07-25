@@ -24,11 +24,10 @@ scrape_configs:
   #     __path__: /var/log/grafana/*log
 
 # Docker Logs
-# scrape_configs:
-# - job_name: docker
-#   pipeline_stages:
-#     - docker: {}
-#   static_configs:
-#     - labels:
-#       job: docker
-#       __path__: /var/lib/docker/containers/*/*-json.log
+- job_name: dockerlogs
+  pipeline_stages:
+    - docker: {}
+  static_configs:
+    - labels:
+      job: dockerlogs
+      __path__: /var/lib/docker/containers/*/*-json.log

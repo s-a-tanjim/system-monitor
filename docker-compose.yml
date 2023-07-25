@@ -1,28 +1,47 @@
 version: "3"
+name: monitor
 
 networks:
   monitor:
     driver: bridge
 
 services:
-  # loki:
-  #   image: grafana/loki:latest
+  loki:
+    image: grafana/loki:latest
+    ports:
+      - "3100:3100"
+    networks:
+      - monitor
+    restart: unless-stopped
+    command: -config.file=/mnt/config/loki-config.yml
+    volumes:
+      - ./loki/loki-config.yml:/mnt/config/loki-config.yml
+
+
+  promtail:
+    image: grafana/promtail:latest
+    restart: unless-stopped
+    networks:
+      - monitor
+    command: -config.file=/mnt/config/promtail-config.yml
+    depends_on:
+      - loki
+    volumes:
+      - /var/log:/var/log:ro
+      - ./promtail/promtail-config.yml:/mnt/config/promtail-config.yml
+
+  # tempo:
+  #   image: grafana/tempo:latest
+  #   container_name: tempo
   #   ports:
-  #     - "3100:3100"
-  #   restart: unless-stopped
-  #   command: -config.file=/mnt/config/loki-config.yml
+  #     - "3200:3200"
+  #     - "14250:14250"
   #   volumes:
-  #     - ./loki/loki-config.yml:/mnt/config/loki-config.yml
-
-
-  # promtail:
-  #   image: grafana/promtail:latest
-  #   restart: unless-stopped
-  #   command: -config.file=/etc/promtail/promtail-config.yml
-  #   volumes:
-  #     - /var/log:/var/log
-  #     - ./promtail/:/etc/promtail/
-
+  #     - ./tempo/config/tempo-local.yaml:/etc/tempo-local.yaml
+  #     - tempo-data:/tmp/tempo
+  #   command: -config.file=/etc/tempo-local.yaml
+  #   networks:
+  #     - monitor
 
   grafana:
     image: grafana/grafana:latest
