@@ -6,6 +6,18 @@ networks:
     driver: bridge
 
 services:
+  demo-app:
+    build:
+      context: ./demo-app/
+    image: demo-app
+    container_name: demo-app
+    ports:
+      - 4000:4000
+    networks:
+      - monitor
+    volumes:
+      - ./demo-app/:/app/
+
   loki:
     image: grafana/loki:latest
     ports:

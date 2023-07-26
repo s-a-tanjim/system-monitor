@@ -6,12 +6,6 @@ scrape_configs:
   - job_name: 'prometheus'
     static_configs:
       - targets: ['prometheus:9090']
-  
-  # - job_name: 'user-service'
-  #   scrape_interval: 5s
-  #   metrics_path: '/actuator/prometheus'
-  #   static_configs:
-  #     - targets: [ 'user-service:9001' ]
 
   - job_name: 'node_exporter'
     # scrape_interval: 5s
@@ -22,3 +16,9 @@ scrape_configs:
     # scrape_interval: 5s
     static_configs:
       - targets: [ 'cadvisor:8080' ]
+
+  - job_name: 'demo-app'
+    scrape_interval: 5s
+    # metrics_path: '/metrics'
+    static_configs:
+      - targets: [ 'demo-app:4000' ]
