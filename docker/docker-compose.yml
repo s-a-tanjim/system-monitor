@@ -42,7 +42,7 @@ services:
     environment:
       - LOG_LEVEL=error
     volumes:
-      - ./loki/loki-config.yml:/mnt/config/loki-config.yml
+      - ./config/loki/loki-config.yml:/mnt/config/loki-config.yml
       - ./data/loki/:/data
 
 
@@ -58,10 +58,10 @@ services:
     depends_on:
       - loki
     volumes:
-      - /var/log:/var/log:ro
-      - /var/lib/docker/containers:/var/lib/docker/containers:ro
-      - /var/run/docker.sock:/var/run/docker.sock
-      - ./promtail/promtail-config.yml:/mnt/config/promtail-config.yml
+      - /var/log:/var/log:ro      # Sys log
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro    # Docker log
+      - /var/run/docker.sock:/var/run/docker.sock   # Docker log
+      - ./config/promtail/promtail-config.yml:/mnt/config/promtail-config.yml
 
 
   tempo:
@@ -76,8 +76,8 @@ services:
       # - "4318:4318"  # otlp http
       # - "9411:9411"   # zipkin
     volumes:
-      - ./tempo/tempo-config.yml:/etc/tempo-local.yaml
-      - tempo-data:/data/tempo
+      - ./config/tempo/tempo-config.yml:/etc/tempo-local.yaml
+      - ./data/tempo:/data/tempo
     command: -config.file=/etc/tempo-local.yaml
     networks:
       - monitor
@@ -95,8 +95,8 @@ services:
       - monitor
     volumes:
       - ./data/grafana-data:/var/lib/grafana
-      - ./grafana/provisioning:/etc/grafana/provisioning
-      - ./grafana/dashboards:/mnt/config/grafana/dashboards
+      - ./config/grafana/provisioning:/etc/grafana/provisioning
+      - ./config/grafana/dashboards:/mnt/config/grafana/dashboards
     environment:
       GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: "/mnt/config/grafana/dashboards/node-exporter-full_1860_rev31.json"
       GF_SECURITY_ADMIN_USER: admin
@@ -124,7 +124,7 @@ services:
       - monitor
     restart: unless-stopped
     volumes:
-      - ./prometheus/prometheus-config.yml:/etc/prometheus-config.yml
+      - ./config/prometheus/prometheus-config.yml:/etc/prometheus-config.yml
       - ./data/prometheus-data/:/prometheus
 
 
