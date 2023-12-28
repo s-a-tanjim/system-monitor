@@ -1,9 +1,15 @@
-version: "3"
+version: "3.9"
 name: monitor
 
 networks:
   monitor:
     driver: bridge
+
+x-default-logging: &logging
+  driver: "json-file"
+  options:
+    max-size: "20m"
+    max-file: "2"
 
 services:
   demo-app:
@@ -11,6 +17,10 @@ services:
       context: ./demo-app/
     image: demo-app
     container_name: demo-app
+    labels:
+      logging: "promtail"
+      logging_jobname: "demo-app"
+    logging: *logging
     ports:
       - 4000:4000
     networks:
@@ -18,21 +28,30 @@ services:
     volumes:
       - ./demo-app/:/app/
 
+
   loki:
-    image: grafana/loki:latest
+    image: grafana/loki:2.9.0
+    # user: 1001:1001
+    restart: unless-stopped
+    logging: *logging
     ports:
       - "3100:3100"
     networks:
       - monitor
-    restart: unless-stopped
-    command: -config.file=/mnt/config/loki-config.yml
+    command: -config.file=/mnt/config/loki-config.yml  -config.expand-env=true
+    environment:
+      - LOG_LEVEL=error
     volumes:
       - ./loki/loki-config.yml:/mnt/config/loki-config.yml
+      - ./data/loki/:/data
 
 
   promtail:
-    image: grafana/promtail:latest
+    image: grafana/promtail:2.9.0
     restart: unless-stopped
+    logging: *logging
+    ports:
+      - "13101:9080"
     networks:
       - monitor
     command: -config.file=/mnt/config/promtail-config.yml
@@ -40,30 +59,40 @@ services:
       - loki
     volumes:
       - /var/log:/var/log:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock
       - ./promtail/promtail-config.yml:/mnt/config/promtail-config.yml
 
-  # tempo:
-  #   image: grafana/tempo:latest
-  #   container_name: tempo
-  #   ports:
-  #     - "3200:3200"
-  #     - "14250:14250"
-  #   volumes:
-  #     - ./tempo/config/tempo-local.yaml:/etc/tempo-local.yaml
-  #     - tempo-data:/tmp/tempo
-  #   command: -config.file=/etc/tempo-local.yaml
-  #   networks:
-  #     - monitor
+
+  tempo:
+    image: grafana/tempo:latest
+    container_name: tempo
+    logging: *logging
+    ports:
+      # - "14268:14268"  # jaeger ingest
+      - "3200:3200"   # tempo
+      - "4317:4317"   # otlp grpc
+      # - "9095:9095" # tempo grpc
+      # - "4318:4318"  # otlp http
+      # - "9411:9411"   # zipkin
+    volumes:
+      - ./tempo/tempo-config.yml:/etc/tempo-local.yaml
+      - tempo-data:/data/tempo
+    command: -config.file=/etc/tempo-local.yaml
+    networks:
+      - monitor
+
 
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:10.1.0
     container_name: grafana
     user: root
+    restart: unless-stopped
+    logging: *logging
     ports:
       - "3000:3000"
     networks:
       - monitor
-    restart: unless-stopped
     volumes:
       - ./data/grafana-data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning
@@ -75,17 +104,19 @@ services:
 
 
   prometheus:
-    image: prom/prometheus:latest
+    image: prom/prometheus:v2.47.0
     container_name: prometheus
     user: root
+    logging: *logging
     command:
       - --config.file=/etc/prometheus-config.yml
       - '--storage.tsdb.path=/prometheus'
+      - --log.level=error
       # - --web.enable-remote-write-receiver
       # - --enable-feature=exemplar-storage
       # - '--web.console.libraries=/etc/prometheus/console_libraries'
       # - '--web.console.templates=/etc/prometheus/consoles'
-      # - '--storage.tsdb.retention.time=200h'
+      - '--storage.tsdb.retention.time=200h'
       # - '--web.enable-lifecycle'
     ports:
       - "9090:9090"
@@ -99,8 +130,9 @@ services:
 
   # For collecting system info (Prometheus Exporter)
   node_exporter:
-    image: quay.io/prometheus/node-exporter:latest
+    image: prom/node-exporter:v1.6.1
     container_name: node_exporter
+    logging: *logging
     command:
       - '--path.rootfs=/host'
     networks:
@@ -119,6 +151,7 @@ services:
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:v0.47.0
     container_name: cadvisor
+    logging: *logging
     ports:
       - 8080:8080
     networks:
